@@ -27,10 +27,9 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
         .first()
         .unwrap_or_else(|| panic!("{} must have variants to implement Default", ty));
 
-    let fields = &first_variant.fields;
-    let first_variant = &first_variant.ident;
+    let variant = &first_variant.ident;
 
-    match fields {
+    match &first_variant.fields {
         Fields::Named(fields) => {
             let fields = fields.named.iter().map(|f| f.ident.as_ref().unwrap());
 
@@ -38,7 +37,7 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
-                        #ty :: #first_variant {
+                        #ty :: #variant {
                             #( #fields: Default::default(), )*
                         }
                     }
@@ -46,19 +45,19 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
             }
         }
         Fields::Unnamed(fields) => {
-            let default = fields
+            let fields = fields
                 .unnamed
                 .iter()
                 .map(|_| quote! { Default::default() })
                 .collect::<Punctuated<_, Token![,]>>();
 
-            let default = default.pairs();
+            let fields = fields.pairs();
 
             quote! {
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
-                        #ty :: #first_variant( #( #default )* )
+                        #ty :: #variant( #( #fields )* )
                     }
                 }
             }
@@ -68,7 +67,7 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
-                        #ty :: #first_variant
+                        #ty :: #variant
                     }
                 }
             }
