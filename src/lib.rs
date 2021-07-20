@@ -3,15 +3,15 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
-use syn::{Fields, Index, Item, ItemEnum, ItemStruct, Token};
+use syn::{spanned::Spanned, Fields, Index, Item, ItemEnum, ItemStruct, Token};
 
 #[proc_macro_derive(ForceDefault)]
 pub fn force_default(input: TokenStream) -> TokenStream {
     let ast: Item = syn::parse(input).unwrap();
 
-    let tokens = match ast {
-        Item::Enum(item_enum) => impl_default_enum(&item_enum),
-        Item::Struct(item_struct) => impl_default_struct(&item_struct),
+    let tokens = match &ast {
+        Item::Enum(item_enum) => impl_default_enum(item_enum),
+        Item::Struct(item_struct) => impl_default_struct(item_struct),
         _ => panic!("ForceDefault can only be implemented for enums and structs."),
     };
 
@@ -127,14 +127,70 @@ fn impl_default_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
 
 #[proc_macro_derive(ForceClone)]
 pub fn force_clone(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let ast: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_clone(&ast);
+    let tokens = match &ast {
+        Item::Enum(item_enum) => impl_clone_enum(item_enum),
+        Item::Struct(item_struct) => impl_clone_struct(item_struct),
+        _ => panic!("ForceClone can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_clone(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_clone_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    let variants = item_enum.variants.iter().map(|v| {
+        let variant = &v.ident;
+        match &v.fields {
+            Fields::Named(named) => {
+                let fields = named.named.iter().map(|f| f.ident.as_ref().unwrap());
+                let fields1 = fields.clone();
+
+                quote! {
+                    Self::#variant { #( #fields, )* } => {
+                        Self::#variant { #( #fields1: #fields1.clone() )* }
+                    }
+                }
+            }
+            Fields::Unnamed(unnamed) => {
+                let fields = unnamed
+                    .unnamed
+                    .iter()
+                    .enumerate()
+                    .map(|(i, f)| proc_macro2::Ident::new(&format!("f{}", i), f.span()));
+                let fields1 = fields.clone();
+
+                quote! {
+                    Self::#variant (
+                        #( #fields, )*
+                    ) => {
+                        Self::#variant ( #( #fields1.clone(), )* )
+                    }
+                }
+            }
+            Fields::Unit => {
+                quote! {
+                    Self::#variant => Self::#variant,
+                }
+            }
+        }
+    });
+
+    quote! {
+        impl #impl_generics Clone for #ty #ty_generics #where_clause {
+            fn clone(&self) -> Self {
+                match self {
+                    #( #variants )*
+                }
+            }
+        }
+    }
+}
+
+fn impl_clone_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 

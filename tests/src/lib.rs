@@ -112,17 +112,30 @@ fn unit_struct_copy() {
     drop(copy);
 }
 
-#[derive(Debug, ForceDefault)]
+#[derive(Debug, ForceDefault, ForceClone)]
 pub enum NamedEnum<T> {
     First { a: u32 },
     Second { value: PhantomData<T> },
 }
+
+impl<T> NamedEnum<T> {
+    pub fn first(a: u32) -> Self {
+        Self::First { a }
+    }
+}
+
 #[test]
 fn named_enum_default() {
     NamedEnum::<DebugOnly>::default();
 }
 
-#[derive(Debug, ForceDefault)]
+#[test]
+fn named_enum_clone() {
+    let named_enum = NamedEnum::<DebugOnly>::first(1);
+    let _clone = named_enum.clone();
+}
+
+#[derive(Debug, ForceDefault, ForceClone)]
 pub enum UnnamedEnum<T> {
     First(u32, u64),
     Second(PhantomData<T>),
@@ -133,7 +146,13 @@ fn unnamed_enum_default() {
     UnnamedEnum::<DebugOnly>::default();
 }
 
-#[derive(Debug, ForceDefault)]
+#[test]
+fn unnamed_enum_clone() {
+    let unnamed_enum = UnnamedEnum::<DebugOnly>::First(1, 2);
+    let _clone = unnamed_enum.clone();
+}
+
+#[derive(Debug, ForceDefault, ForceClone)]
 pub enum UnitEnum {
     First,
     Second,
@@ -142,4 +161,10 @@ pub enum UnitEnum {
 #[test]
 fn unit_enum_default() {
     UnitEnum::default();
+}
+
+#[test]
+fn unit_enum_clone() {
+    let unit_enum = UnitEnum::First;
+    let _clone = unit_enum.clone();
 }
