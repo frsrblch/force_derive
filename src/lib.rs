@@ -5,8 +5,8 @@ use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::{Fields, Index, ItemStruct, Token};
 
-#[proc_macro_derive(MyDefault)]
-pub fn my_default(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForceDefault)]
+pub fn force_default(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
     let tokens = impl_default(&ast);
@@ -64,8 +64,8 @@ fn impl_default(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(MyClone)]
-pub fn my_clone(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForceClone)]
+pub fn force_clone(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
     let tokens = impl_clone(&ast);
@@ -135,8 +135,8 @@ fn impl_clone(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(MyCopy)]
-pub fn my_copy(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForceCopy)]
+pub fn force_copy(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
     let tokens = impl_copy(&ast);
@@ -153,8 +153,8 @@ fn impl_copy(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(MyPartialEq)]
-pub fn my_partial_eq(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForcePartialEq)]
+pub fn force_partial_eq(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
 
     let tokens = impl_partial_eq(&ast);
@@ -216,8 +216,8 @@ fn impl_partial_eq(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(MyEq)]
-pub fn my_eq(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForceEq)]
+pub fn force_eq(input: TokenStream) -> TokenStream {
     let item = syn::parse(input).unwrap();
 
     let tokens = impl_eq(&item);
@@ -234,8 +234,8 @@ fn impl_eq(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     }
 }
 
-#[proc_macro_derive(MyHash)]
-pub fn my_hash(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ForceHash)]
+pub fn force_hash(input: TokenStream) -> TokenStream {
     let item = syn::parse(input).unwrap();
 
     let tokens = impl_hash(&item);

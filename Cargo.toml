@@ -1,9 +1,8 @@
 [package]
-name = "my_derives"
+name = "force_derive"
 version = "0.0.0"
 authors = ["Fraser Balch <farseer.ulwithy@gmail.com>"]
-description = "A `cargo generate` template for quick-starting a procedural macro crate"
-keywords = ["template", "proc_macro", "procmacro"]
+keywords = ["proc_macro", "procmacro"]
 edition = "2018"
 
 [lib]
