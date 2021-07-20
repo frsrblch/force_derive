@@ -254,14 +254,27 @@ fn impl_clone_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
 
 #[proc_macro_derive(ForceCopy)]
 pub fn force_copy(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let item: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_copy(&ast);
+    let tokens = match &item {
+        Item::Enum(item_enum) => impl_copy_enum(item_enum),
+        Item::Struct(item_struct) => impl_copy_struct(item_struct),
+        _ => panic!("ForceCopy can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_copy(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_copy_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    quote! {
+        impl #impl_generics Copy for #ty #ty_generics #where_clause {}
+    }
+}
+
+fn impl_copy_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 
