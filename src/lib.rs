@@ -3,18 +3,80 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
-use syn::{Fields, Index, ItemStruct, Token};
+use syn::{Fields, Index, Item, ItemEnum, ItemStruct, Token};
 
 #[proc_macro_derive(ForceDefault)]
 pub fn force_default(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let ast: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_default(&ast);
+    let tokens = match ast {
+        Item::Enum(item_enum) => impl_default_enum(&item_enum),
+        Item::Struct(item_struct) => impl_default_struct(&item_struct),
+        _ => panic!("ForceDefault can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_default(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    let first_variant = item_enum
+        .variants
+        .first()
+        .unwrap_or_else(|| panic!("{} must have variants to implement Default", ty));
+
+    let fields = &first_variant.fields;
+    let first_variant = &first_variant.ident;
+
+    match fields {
+        Fields::Named(fields) => {
+            let fields = fields.named.iter().map(|f| f.ident.as_ref().unwrap());
+
+            quote! {
+                impl #impl_generics Default for #ty #ty_generics #where_clause {
+                    #[inline]
+                    fn default() -> #ty #ty_generics {
+                        #ty :: #first_variant {
+                            #( #fields: Default::default(), )*
+                        }
+                    }
+                }
+            }
+        }
+        Fields::Unnamed(fields) => {
+            let default = fields
+                .unnamed
+                .iter()
+                .map(|_| quote! { Default::default() })
+                .collect::<Punctuated<_, Token![,]>>();
+
+            let default = default.pairs();
+
+            quote! {
+                impl #impl_generics Default for #ty #ty_generics #where_clause {
+                    #[inline]
+                    fn default() -> #ty #ty_generics {
+                        #ty :: #first_variant( #( #default )* )
+                    }
+                }
+            }
+        }
+        Fields::Unit => {
+            quote! {
+                impl #impl_generics Default for #ty #ty_generics #where_clause {
+                    #[inline]
+                    fn default() -> #ty #ty_generics {
+                        #ty :: #first_variant
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn impl_default_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 
