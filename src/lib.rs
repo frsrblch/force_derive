@@ -454,14 +454,73 @@ fn impl_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
 
 #[proc_macro_derive(ForceHash)]
 pub fn force_hash(input: TokenStream) -> TokenStream {
-    let item = syn::parse(input).unwrap();
+    let item: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_hash(&item);
+    let tokens = match &item {
+        Item::Enum(item_enum) => impl_hash_enum(item_enum),
+        Item::Struct(item_struct) => impl_hash_struct(item_struct),
+        _ => panic!("ForceHash can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_hash(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_hash_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    let variants = item_enum.variants.iter().map(|v| {
+        let variant = &v.ident;
+
+        let fields = get_field_identifiers(&v.fields);
+        let fields1 = fields.iter();
+        let fields = fields.iter();
+
+        match &v.fields {
+            Fields::Named(_) => {
+                quote! {
+                    Self::#variant {
+                        #( #fields, )*
+                    } => {
+                        #(
+                            std::hash::Hash::hash(#fields1, state);
+                        )*
+                    }
+                }
+            }
+            Fields::Unnamed(_) => {
+                quote! {
+                    Self::#variant (
+                        #( #fields, )*
+                    ) => {
+                        #(
+                            std::hash::Hash::hash(#fields1, state);
+                        )*
+                    }
+                }
+            }
+            Fields::Unit => {
+                quote! {
+                    Self::#variant => {}
+                }
+            }
+        }
+    });
+
+    quote! {
+        impl #impl_generics std::hash::Hash for #ty #ty_generics #where_clause {
+            #[inline]
+            fn hash<__H: std::hash::Hasher>(&self, state: &mut __H) {
+                std::hash::Hash::hash(&std::mem::discriminant(self), state);
+                match self {
+                    #( #variants )*
+                };
+            }
+        }
+    }
+}
+
+fn impl_hash_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 

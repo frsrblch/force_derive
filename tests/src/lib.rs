@@ -1,4 +1,8 @@
+#![allow(unused_imports)]
+
 use force_derive::*;
+use std::collections::hash_map::RandomState;
+use std::hash::{BuildHasher, Hash, Hasher};
 use std::marker::PhantomData;
 
 #[derive(Debug)]
@@ -112,7 +116,7 @@ fn unit_struct_copy() {
     drop(copy);
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq)]
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq, ForceHash)]
 pub enum NamedEnum<T> {
     First { a: u32 },
     Second { value: PhantomData<T> },
@@ -163,7 +167,25 @@ fn named_enum_partial_eq() {
     );
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq)]
+#[test]
+fn named_enum_hash() {
+    let s = &RandomState::new();
+
+    assert_eq!(
+        get_hash(NamedEnum::<DebugOnly>::First { a: 0 }, s),
+        get_hash(NamedEnum::<DebugOnly>::First { a: 0 }, s)
+    );
+    assert_ne!(
+        get_hash(NamedEnum::<DebugOnly>::First { a: 0 }, s),
+        get_hash(NamedEnum::<DebugOnly>::First { a: 1 }, s)
+    );
+    assert_eq!(
+        get_hash(NamedEnum::<DebugOnly>::Second { value: PhantomData }, s),
+        get_hash(NamedEnum::<DebugOnly>::Second { value: PhantomData }, s)
+    );
+}
+
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq, ForceHash)]
 pub enum UnnamedEnum<T> {
     First(u32, u64),
     Second(PhantomData<T>),
@@ -212,7 +234,33 @@ fn unnamed_enum_partial_eq() {
     );
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForcePartialEq)]
+#[test]
+fn unnamed_enum_hash() {
+    let s = &RandomState::new();
+
+    assert_eq!(
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 2), s),
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 2), s)
+    );
+    assert_ne!(
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 2), s),
+        get_hash(UnnamedEnum::<DebugOnly>::First(2, 2), s)
+    );
+    assert_ne!(
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 2), s),
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 1), s)
+    );
+    assert_ne!(
+        get_hash(UnnamedEnum::<DebugOnly>::First(1, 2), s),
+        get_hash(UnnamedEnum::<DebugOnly>::Second(PhantomData), s)
+    );
+    assert_eq!(
+        get_hash(UnnamedEnum::<DebugOnly>::Second(PhantomData), s),
+        get_hash(UnnamedEnum::<DebugOnly>::Second(PhantomData), s)
+    );
+}
+
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForcePartialEq, ForceHash)]
 pub enum UnitEnum {
     First,
     Second,
@@ -242,4 +290,20 @@ fn unit_enum_eq() {
     assert_eq!(UnitEnum::First, UnitEnum::First);
     assert_eq!(UnitEnum::Second, UnitEnum::Second);
     assert_ne!(UnitEnum::First, UnitEnum::Second);
+}
+
+#[test]
+fn unit_enum_hash() {
+    let s = &RandomState::new();
+
+    assert_eq!(get_hash(UnitEnum::First, s), get_hash(UnitEnum::First, s));
+    assert_ne!(get_hash(UnitEnum::First, s), get_hash(UnitEnum::Second, s));
+    assert_eq!(get_hash(UnitEnum::Second, s), get_hash(UnitEnum::Second, s));
+}
+
+#[cfg(test)]
+fn get_hash<H: Hash>(value: H, s: &RandomState) -> u64 {
+    let mut hasher = s.build_hasher();
+    value.hash(&mut hasher);
+    hasher.finish()
 }
