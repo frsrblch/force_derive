@@ -152,7 +152,7 @@ fn unnamed_enum_clone() {
     let _clone = unnamed_enum.clone();
 }
 
-#[derive(Debug, ForceDefault, ForceClone)]
+#[derive(Debug, ForceDefault, ForceClone, ForcePartialEq)]
 pub enum UnitEnum {
     First,
     Second,
@@ -167,4 +167,11 @@ fn unit_enum_default() {
 fn unit_enum_clone() {
     let unit_enum = UnitEnum::First;
     let _clone = unit_enum.clone();
+}
+
+#[test]
+fn unit_enum_eq() {
+    assert_eq!(UnitEnum::First, UnitEnum::First);
+    assert_eq!(UnitEnum::Second, UnitEnum::Second);
+    assert_ne!(UnitEnum::First, UnitEnum::Second);
 }
