@@ -3,7 +3,8 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
-use syn::{spanned::Spanned, Fields, Index, Item, ItemEnum, ItemStruct, Token};
+use syn::spanned::Spanned;
+use syn::{Fields, Index, Item, ItemEnum, ItemStruct, Token};
 
 #[proc_macro_derive(ForceDefault)]
 pub fn force_default(input: TokenStream) -> TokenStream {
@@ -285,14 +286,53 @@ fn impl_copy_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
 
 #[proc_macro_derive(ForcePartialEq)]
 pub fn force_partial_eq(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let item: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_partial_eq(&ast);
+    let tokens = match &item {
+        Item::Enum(item_enum) => impl_partial_eq_enum(item_enum),
+        Item::Struct(item_struct) => impl_partial_eq_struct(item_struct),
+        _ => panic!("ForcePartialEq can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_partial_eq(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_partial_eq_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    let variants = item_enum.variants.iter().map(|v| {
+        let variant = &v.ident;
+
+        match &v.fields {
+            Fields::Named(named) => {
+                todo!("named")
+            }
+            Fields::Unnamed(unnamed) => {
+                todo!("unnamed")
+            }
+            Fields::Unit => {
+                quote! {
+                    (Self::#variant, Self::#variant) => true,
+                }
+            }
+        }
+    });
+
+    quote! {
+        impl #impl_generics PartialEq for #ty #ty_generics #where_clause {
+            #[inline]
+            fn eq(&self, rhs: &Self) -> bool {
+                match (self, rhs) {
+                    #( #variants )*
+                    (_, _) => false,
+                }
+            }
+        }
+    }
+}
+
+fn impl_partial_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 

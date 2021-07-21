@@ -168,7 +168,9 @@ fn unnamed_enum_copy() {
     drop(copy);
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone)]
+#[derive(
+    Debug, ForceDefault, ForceCopy, ForceClone, Debug, ForceDefault, ForceClone, ForcePartialEq,
+)]
 pub enum UnitEnum {
     First,
     Second,
@@ -191,4 +193,11 @@ fn unit_enum_copy() {
     let copy = unit_enum;
     drop(unit_enum);
     drop(copy);
+}
+
+#[test]
+fn unit_enum_eq() {
+    assert_eq!(UnitEnum::First, UnitEnum::First);
+    assert_eq!(UnitEnum::Second, UnitEnum::Second);
+    assert_ne!(UnitEnum::First, UnitEnum::Second);
 }
