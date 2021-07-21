@@ -53,6 +53,7 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
             let fields = fields.named.iter().map(|f| f.ident.as_ref().unwrap());
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
@@ -73,6 +74,7 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
             let fields = fields.pairs();
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
@@ -83,6 +85,7 @@ fn impl_default_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
         }
         Fields::Unit => {
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
@@ -103,6 +106,7 @@ fn impl_default_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let fields = fields.named.iter().map(|f| f.ident.as_ref().unwrap());
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
@@ -123,6 +127,7 @@ fn impl_default_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let default = default.pairs();
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> #ty #ty_generics {
@@ -133,6 +138,7 @@ fn impl_default_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
         }
         Fields::Unit => {
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Default for #ty #ty_generics #where_clause {
                     #[inline]
                     fn default() -> Self {
@@ -194,6 +200,7 @@ fn impl_clone_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     });
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics Clone for #ty #ty_generics #where_clause {
             fn clone(&self) -> Self {
                 match self {
@@ -214,6 +221,7 @@ fn impl_clone_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let fields_1 = fields_0.clone();
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Clone for #ty #ty_generics #where_clause {
                     #[inline]
                     fn clone(&self) -> #ty #ty_generics {
@@ -240,21 +248,23 @@ fn impl_clone_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let clone = clone.pairs();
 
             quote! {
-                    impl #impl_generics Clone for #ty #ty_generics #where_clause {
-                        #[inline]
-                        fn clone(&self) -> #ty #ty_generics {
-                            #ty ( #( #clone )* )
-                        }
-
-                        #[inline]
-                        fn clone_from(&mut self, other: &Self) {
-                            #( self. #fields .clone_from(&other. #fields); )*
-                        }
+                #[automatically_derived]
+                impl #impl_generics Clone for #ty #ty_generics #where_clause {
+                    #[inline]
+                    fn clone(&self) -> #ty #ty_generics {
+                        #ty ( #( #clone )* )
                     }
+
+                    #[inline]
+                    fn clone_from(&mut self, other: &Self) {
+                        #( self. #fields .clone_from(&other. #fields); )*
+                    }
+                }
             }
         }
         Fields::Unit => {
             quote! {
+                #[automatically_derived]
                 impl #impl_generics Clone for #ty #ty_generics #where_clause {
                     #[inline]
                     fn clone(&self) -> Self {
@@ -284,6 +294,7 @@ fn impl_copy_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     let ty = &item_enum.ident;
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics Copy for #ty #ty_generics #where_clause {}
     }
 }
@@ -293,6 +304,7 @@ fn impl_copy_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let ty = &item_struct.ident;
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics Copy for #ty #ty_generics #where_clause {}
     }
 }
@@ -355,6 +367,7 @@ fn impl_partial_eq_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     });
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics PartialEq for #ty #ty_generics #where_clause {
             #[inline]
             fn eq(&self, rhs: &Self) -> bool {
@@ -382,6 +395,7 @@ fn impl_partial_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
             let equality = equality.pairs();
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics PartialEq for #ty #ty_generics #where_clause {
                     #[inline]
                     fn eq(&self, rhs: &Self) -> bool {
@@ -400,6 +414,7 @@ fn impl_partial_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
             let equality = equality.pairs();
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics PartialEq for #ty #ty_generics #where_clause {
                     #[inline]
                     fn eq(&self, rhs: &Self) -> bool {
@@ -410,6 +425,7 @@ fn impl_partial_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
         }
         Fields::Unit => {
             quote! {
+                #[automatically_derived]
                 impl #impl_generics PartialEq for #ty #ty_generics #where_clause {
                     #[inline]
                     fn eq(&self, rhs: &Self) -> bool {
@@ -439,6 +455,7 @@ fn impl_eq_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     let ty = &item_enum.ident;
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics Eq for #ty #ty_generics #where_clause {}
     }
 }
@@ -448,6 +465,7 @@ fn impl_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let ty = &item_struct.ident;
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics Eq for #ty #ty_generics #where_clause {}
     }
 }
@@ -508,6 +526,7 @@ fn impl_hash_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     });
 
     quote! {
+        #[automatically_derived]
         impl #impl_generics std::hash::Hash for #ty #ty_generics #where_clause {
             #[inline]
             fn hash<__H: std::hash::Hasher>(&self, state: &mut __H) {
@@ -529,6 +548,7 @@ fn impl_hash_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let fields = fields.named.iter().map(|f| f.ident.as_ref().unwrap());
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics std::hash::Hash for #ty #ty_generics #where_clause {
                     fn hash<H>(&self, state: &mut H) where H: std::hash::Hasher {
                          #( self.#fields.hash(state); )*
@@ -540,6 +560,7 @@ fn impl_hash_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
             let fields = (0..fields.unnamed.len()).into_iter().map(Index::from);
 
             quote! {
+                #[automatically_derived]
                 impl #impl_generics std::hash::Hash for #ty #ty_generics #where_clause {
                     fn hash<H>(&self, state: &mut H) where H: std::hash::Hasher {
                          #( self.#fields.hash(state); )*
@@ -549,6 +570,7 @@ fn impl_hash_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
         }
         Fields::Unit => {
             quote! {
+                #[automatically_derived]
                 impl #impl_generics std::hash::Hash for #ty #ty_generics #where_clause {
                     fn hash<H>(&self, state: &mut H) where H: std::hash::Hasher {}
                 }
