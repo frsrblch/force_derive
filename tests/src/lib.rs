@@ -112,7 +112,7 @@ fn unit_struct_copy() {
     drop(copy);
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone)]
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq)]
 pub enum NamedEnum<T> {
     First { a: u32 },
     Second { value: PhantomData<T> },
@@ -143,7 +143,27 @@ fn named_enum_copy() {
     drop(copy);
 }
 
-#[derive(Debug, ForceDefault, ForceCopy, ForceClone)]
+#[test]
+fn named_enum_partial_eq() {
+    assert_eq!(
+        NamedEnum::<DebugOnly>::First { a: 0 },
+        NamedEnum::First { a: 0 }
+    );
+    assert_ne!(
+        NamedEnum::<DebugOnly>::First { a: 0 },
+        NamedEnum::First { a: 1 }
+    );
+    assert_ne!(
+        NamedEnum::<DebugOnly>::Second { value: PhantomData },
+        NamedEnum::First { a: 0 }
+    );
+    assert_eq!(
+        NamedEnum::<DebugOnly>::Second { value: PhantomData },
+        NamedEnum::Second { value: PhantomData },
+    );
+}
+
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForceEq, ForcePartialEq)]
 pub enum UnnamedEnum<T> {
     First(u32, u64),
     Second(PhantomData<T>),
@@ -168,9 +188,31 @@ fn unnamed_enum_copy() {
     drop(copy);
 }
 
-#[derive(
-    Debug, ForceDefault, ForceCopy, ForceClone, Debug, ForceDefault, ForceClone, ForcePartialEq,
-)]
+#[test]
+fn unnamed_enum_partial_eq() {
+    assert_eq!(
+        UnnamedEnum::<DebugOnly>::First(1, 2),
+        UnnamedEnum::First(1, 2)
+    );
+    assert_ne!(
+        UnnamedEnum::<DebugOnly>::First(1, 2),
+        UnnamedEnum::First(2, 2)
+    );
+    assert_ne!(
+        UnnamedEnum::<DebugOnly>::First(1, 2),
+        UnnamedEnum::First(1, 1)
+    );
+    assert_ne!(
+        UnnamedEnum::<DebugOnly>::First(1, 2),
+        UnnamedEnum::Second(PhantomData)
+    );
+    assert_eq!(
+        UnnamedEnum::<DebugOnly>::Second(PhantomData),
+        UnnamedEnum::Second(PhantomData)
+    );
+}
+
+#[derive(Debug, ForceDefault, ForceCopy, ForceClone, ForcePartialEq)]
 pub enum UnitEnum {
     First,
     Second,

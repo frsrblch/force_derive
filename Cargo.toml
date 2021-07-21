@@ -1,7 +1,6 @@
 [package]
 name = "force_derive"
 version = "0.0.0"
-authors = ["Fraser Balch <farseer.ulwithy@gmail.com>"]
 keywords = ["proc_macro", "procmacro"]
 edition = "2018"
 

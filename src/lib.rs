@@ -4,7 +4,25 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::{Fields, Index, Item, ItemEnum, ItemStruct, Token};
+use syn::{Fields, Ident, Index, Item, ItemEnum, ItemStruct, Token};
+
+fn get_field_identifiers(fields: &Fields) -> Vec<Ident> {
+    match fields {
+        Fields::Named(named) => named
+            .named
+            .iter()
+            .map(|f| f.ident.as_ref().unwrap())
+            .cloned()
+            .collect(),
+        Fields::Unnamed(unnamed) => unnamed
+            .unnamed
+            .iter()
+            .enumerate()
+            .map(|(i, f)| Ident::new(&format!("f{}", i), f.span()))
+            .collect(),
+        Fields::Unit => vec![],
+    }
+}
 
 #[proc_macro_derive(ForceDefault)]
 pub fn force_default(input: TokenStream) -> TokenStream {
@@ -145,25 +163,20 @@ fn impl_clone_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
 
     let variants = item_enum.variants.iter().map(|v| {
         let variant = &v.ident;
-        match &v.fields {
-            Fields::Named(named) => {
-                let fields = named.named.iter().map(|f| f.ident.as_ref().unwrap());
-                let fields1 = fields.clone();
 
+        let fields = get_field_identifiers(&v.fields);
+        let fields = fields.iter();
+        let fields1 = fields.clone();
+
+        match &v.fields {
+            Fields::Named(_) => {
                 quote! {
                     Self::#variant { #( #fields, )* } => {
                         Self::#variant { #( #fields1: #fields1.clone() )* }
                     }
                 }
             }
-            Fields::Unnamed(unnamed) => {
-                let fields = unnamed
-                    .unnamed
-                    .iter()
-                    .enumerate()
-                    .map(|(i, f)| proc_macro2::Ident::new(&format!("f{}", i), f.span()));
-                let fields1 = fields.clone();
-
+            Fields::Unnamed(_) => {
                 quote! {
                     Self::#variant (
                         #( #fields, )*
@@ -304,12 +317,34 @@ fn impl_partial_eq_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     let variants = item_enum.variants.iter().map(|v| {
         let variant = &v.ident;
 
+        let fields = get_field_identifiers(&v.fields);
+
+        let fields_lhs = fields.iter().map(|f| Ident::new(&format!("{}_lhs", &f), f.span()));
+        let fields_rhs = fields.iter().map(|f| Ident::new(&format!("{}_rhs", &f), f.span()));
+
+        let equality = fields_lhs.clone()
+            .zip(fields_rhs.clone())
+            .map(|(lhs, rhs)| quote! { #lhs == #rhs })
+            .collect::<Punctuated<_, Token![&&]>>();
+        let equality = equality.pairs();
+
         match &v.fields {
-            Fields::Named(named) => {
-                todo!("named")
+            Fields::Named(_) => {
+                let fields1 = fields.iter();
+                let fields2 = fields.iter();
+
+                quote! {
+                    (Self::#variant { #( #fields1: #fields_lhs, )* }, Self::#variant { #( #fields2: #fields_rhs, )* }) => {
+                        #( #equality )*
+                    }
+                }
             }
-            Fields::Unnamed(unnamed) => {
-                todo!("unnamed")
+            Fields::Unnamed(_) => {
+                quote! {
+                    (Self::#variant ( #( #fields_lhs, )* ), Self::#variant ( #( #fields_rhs, )* )) => {
+                        #( #equality )*
+                    }
+                }
             }
             Fields::Unit => {
                 quote! {
@@ -388,14 +423,27 @@ fn impl_partial_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream 
 
 #[proc_macro_derive(ForceEq)]
 pub fn force_eq(input: TokenStream) -> TokenStream {
-    let item = syn::parse(input).unwrap();
+    let item: Item = syn::parse(input).unwrap();
 
-    let tokens = impl_eq(&item);
+    let tokens = match &item {
+        Item::Enum(item_enum) => impl_eq_enum(item_enum),
+        Item::Struct(item_struct) => impl_eq_struct(item_struct),
+        _ => panic!("ForceEq can only be implemented for enums and structs."),
+    };
 
     tokens.into()
 }
 
-fn impl_eq(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
+fn impl_eq_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
+    let (impl_generics, ty_generics, where_clause) = item_enum.generics.split_for_impl();
+    let ty = &item_enum.ident;
+
+    quote! {
+        impl #impl_generics Eq for #ty #ty_generics #where_clause {}
+    }
+}
+
+fn impl_eq_struct(item_struct: &ItemStruct) -> proc_macro2::TokenStream {
     let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
     let ty = &item_struct.ident;
 
