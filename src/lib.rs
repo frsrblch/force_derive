@@ -171,8 +171,8 @@ fn impl_clone_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
         let variant = &v.ident;
 
         let fields = get_field_identifiers(&v.fields);
+        let fields1 = fields.iter();
         let fields = fields.iter();
-        let fields1 = fields.clone();
 
         match &v.fields {
             Fields::Named(_) => {
@@ -202,6 +202,7 @@ fn impl_clone_enum(item_enum: &ItemEnum) -> proc_macro2::TokenStream {
     quote! {
         #[automatically_derived]
         impl #impl_generics Clone for #ty #ty_generics #where_clause {
+            #[inline]
             fn clone(&self) -> Self {
                 match self {
                     #( #variants )*
